@@ -83,10 +83,6 @@ Resumizer/
 - Scoring is only as good as the job description you paste in — vague or very short job descriptions give the model less to weigh the resume against.
 - Currently analyzes one resume against one job description at a time.
 
-## 🔐 Security notes
-
-- If a `.env` file with a real key ever leaves your machine, treat that key as compromised and rotate it immediately.
-
 ## ☁️ Deployment
 
 Live in production on a two-service split:
