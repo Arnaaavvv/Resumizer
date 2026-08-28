@@ -236,7 +236,7 @@ const InputPanel = ({
                 <p className="upload-zone__text">
                   <span className="upload-zone__link">Click to upload</span> or drag and drop
                 </p>
-                <p className="upload-zone__hint">PDF, DOCX, or TXT · max 10MB</p>
+                <p className="upload-zone__hint">PDF, DOCX or TXT - max 10MB</p>
               </div>
             )}
           </div>
