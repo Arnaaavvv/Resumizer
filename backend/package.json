@@ -1,0 +1,17 @@
+{
+  "name": "ai-resume-analyzer-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Proxies Gemini API calls so the API key never reaches the browser.",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
