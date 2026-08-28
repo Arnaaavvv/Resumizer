@@ -32,16 +32,14 @@ function App() {
             Resume<span>/</span>Analyzer
           </h1>
           <p className="app-header__tagline">
-            Paste your resume and a job posting. Get a structured breakdown — not vibes.
+            Paste your resume and a job posting. Get a structured breakdown not vibes.
           </p>
         </div>
       </header>
 
       {backendReady === false && (
         <div className="setup-banner">
-          <strong>Setup required —</strong> the backend isn't reachable, or it's missing a Gemini API key.
-          Start it with <code>cd backend && npm run dev</code> after adding <code>GEMINI_API_KEY</code> to{' '}
-          <code>backend/.env</code> (see <code>backend/.env.example</code>).
+          <strong>Setup required —</strong> the backend isn't reachable or it's missing a Gemini API key.
         </div>
       )}
 
