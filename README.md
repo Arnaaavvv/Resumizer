@@ -16,7 +16,7 @@ Upload a resume, drop in a job description, get a rigorous verdict back: match s
 
 ## 🔴 Live Demo
 
-**[Try it here](https://resumizer-murex.vercel.app/)** *(update with your actual Vercel URL)*
+**[Try it here](https://resumizer-murex.vercel.app/)** 
 
 No install, no signup — upload a resume, paste a job description and get your breakdown in seconds.
 
