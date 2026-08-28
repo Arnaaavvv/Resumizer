@@ -17,7 +17,7 @@ Upload a resume, drop in a job description, get a rigorous verdict back: match s
 
 **[Try it here](https://resumizer-murex.vercel.app/)** 
 
-No install, no signup — upload a resume, paste a job description and get your breakdown in seconds.
+No install, no signup just upload a resume, paste a job description and get your breakdown in seconds.
 
 ## ✨ Features
 
