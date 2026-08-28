@@ -1,7 +1,6 @@
 # AI Resume Analyzer — Backend
 
-A small Express server that proxies calls to the Gemini API, so the API key
-lives only on the server and never reaches the browser.
+This is the backend half of the project — see the [root README](../README.md) for how it relates to `../frontend`.
 
 ## Setup
 
