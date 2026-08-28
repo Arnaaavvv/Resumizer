@@ -9,21 +9,13 @@ This is the frontend half of the project — see the [root README](../README.md)
 - Resume input via file upload only (PDF/DOCX/TXT, drag-and-drop or click to browse)
 - Live preview of the parsed resume text alongside the input form
 - Job description input via text paste
-- AI-powered analysis using Gemini API
+- AI-powered analysis 
 - Match score visualization
 - Keyword matching and gap analysis
 - Bullet point rewrite suggestions
 - Formatting and structure feedback
 - ATS (Applicant Tracking System) risk assessment
 - Export results as text file
-
-## Design
-
-The application follows a Terminal Technical design direction:
-- Deep navy primary color with cream background and vibrant green accent
-- IBM Plex Mono typeface for a technical/manual feel
-- Sharp corners, minimal padding, and ruled lines for section separation
-- Dense, information-focused layout resembling technical documentation
 
 ## Tech Stack
 
