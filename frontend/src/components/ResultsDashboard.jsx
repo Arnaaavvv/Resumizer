@@ -9,8 +9,6 @@ import { exportResults, exportResultsAsPDF } from '../lib/storage';
 const STAMP_CLASS = { low: 'stamp stamp--low', medium: 'stamp stamp--medium', high: 'stamp stamp--high' };
 
 const ResultsDashboard = ({ results }) => {
-  // Tracks which export is in flight ('txt' | 'pdf' | null) so only the
-  // clicked button shows a busy state and both stay disabled meanwhile.
   const [exportingFormat, setExportingFormat] = useState(null);
 
   const handleExport = async (format) => {
@@ -23,8 +21,6 @@ const ResultsDashboard = ({ results }) => {
         await exportResults(results);
       }
     } catch {
-      // exportResults/exportResultsAsPDF already log the error; the
-      // download simply won't start.
     } finally {
       setExportingFormat(null);
     }

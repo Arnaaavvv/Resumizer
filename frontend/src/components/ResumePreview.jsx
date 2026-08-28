@@ -8,9 +8,6 @@ const formatFileSize = (bytes) => {
 
 const wordCount = (text) => (text.trim() ? text.trim().split(/\s+/).length : 0);
 
-// Renders whatever visual representation parseResume.renderResumePreview()
-// produced for this file. Falls back to the raw extracted text (still
-// wrapped in the same "page" styling) if a visual render wasn't available.
 const ResumeVisual = ({ resumePreview, resumeText }) => {
   if (resumePreview?.type === 'image-pages' && resumePreview.pages?.length > 0) {
     return (

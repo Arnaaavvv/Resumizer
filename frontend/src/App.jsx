@@ -68,7 +68,7 @@ function App() {
       <ResultsDashboard results={analysisResults} />
 
       <footer className="app-footer">
-        Resume parsing happens in your browser · analysis is proxied through a local backend · nothing stored on a server
+        Resume parsing happens in your browser, nothing stored on a server
       </footer>
     </div>
   );

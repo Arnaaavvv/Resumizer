@@ -1,7 +1,5 @@
 const line = (char = '-', len = 60) => char.repeat(len);
 
-// Normalizes the raw analysis results into a shape both exporters can rely
-// on (safe defaults for every field, no undefined arrays/strings).
 const normalizeResults = (results) => ({
   matchScore: results.matchScore ?? 'N/A',
   summary: results.summary || 'No summary provided.',
@@ -87,8 +85,6 @@ export const exportResultsAsPDF = async (results) => {
   const r = normalizeResults(results);
 
   try {
-    // jsPDF is only needed for this one action, so it's lazy-loaded rather
-    // than bundled into the main app chunk.
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
 

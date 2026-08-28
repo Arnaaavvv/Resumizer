@@ -81,15 +81,10 @@ const InputPanel = ({
     setResumePreview(null);
     setIsParsingResume(true);
     try {
-      // Text extraction (feeds the AI) and visual preview rendering
-      // (feeds the Resume Preview panel) run in parallel — they're
-      // independent reads of the same file.
       const [text, preview] = await Promise.all([
         parseResume(file),
         renderResumePreview(file),
       ]);
-      // Flag right away if the upload doesn't actually look like a resume,
-      // before it's stored anywhere or sent to the AI.
       assertLooksLikeResume(text);
       setResumeText(text);
       setResumePreview(preview);

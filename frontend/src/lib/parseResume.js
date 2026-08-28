@@ -1,10 +1,5 @@
-// pdfjs-dist and its worker are bundled as a large chunk, so both are
-// lazy-loaded only when a PDF is actually uploaded rather than on page load.
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
-// Rendering every page of a huge resume to a canvas image can stall the UI,
-// so the visual preview caps out here (the extracted *text* used for
-// analysis still covers every page).
 const MAX_PREVIEW_PAGES = 6;
 const PDF_PREVIEW_SCALE = 1.5;
 
@@ -13,9 +8,6 @@ const loadPdfJs = async () => {
     import('pdfjs-dist'),
     import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
   ]);
-  // Import the worker as a bundled asset URL so its version always matches
-  // the installed pdfjs-dist package (a version mismatch with a CDN worker
-  // is a common source of "Failed to parse PDF" errors).
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   return pdfjsLib;
 };
@@ -58,12 +50,6 @@ const extractTextFromTXT = async (file) => {
   return text;
 };
 
-// ---------------------------------------------------------------------
-// Visual preview rendering — separate from text extraction above. This
-// produces an actual on-screen rendition of the resume (rasterized PDF
-// pages, or the resume's real formatting for DOCX) rather than a flat
-// text dump, for display in the Resume Preview panel.
-// ---------------------------------------------------------------------
 
 const renderPDFPreview = async (file) => {
   const pdfjsLib = await loadPdfJs();
@@ -79,10 +65,8 @@ const renderPDFPreview = async (file) => {
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const context = canvas.getContext('2d');
-    // eslint-disable-next-line no-await-in-loop
     await page.render({ canvasContext: context, viewport }).promise;
     pages.push(canvas.toDataURL('image/png'));
-    // Release the canvas backing store immediately rather than waiting for GC.
     canvas.width = 0;
     canvas.height = 0;
   }
@@ -117,16 +101,6 @@ const renderTXTPreview = async (file) => {
   return { type: 'text', text };
 };
 
-/**
- * Produces a *visual* preview of the resume for the Resume Preview panel:
- * - PDF  -> rasterized page images (what the file actually looks like)
- * - DOCX -> the document's real formatting, converted to HTML
- * - TXT  -> plain text (no formatting exists to preview)
- *
- * This is best-effort and independent of parseResume(): if rendering fails,
- * it returns null so the caller can fall back to the plain-text view rather
- * than blocking the analysis flow.
- */
 export const renderResumePreview = async (file) => {
   if (!file) return null;
 
@@ -150,22 +124,10 @@ export const renderResumePreview = async (file) => {
   }
 };
 
-// ---------------------------------------------------------------------
-// "Is this actually a resume?" check — runs immediately after text
-// extraction, entirely client-side, so a mismatched upload (an invoice,
-// an essay, a code file, a random PDF, a blank/scanned page, etc.) gets
-// flagged right away instead of silently proceeding to a paid AI call.
-// ---------------------------------------------------------------------
 
 const MIN_RESUME_WORDS = 40;
 const MIN_SIGNAL_MATCHES = 2;
 
-// Distinctive phrases from this app's OWN exported analysis report (see
-// storage.js's exportResults / exportResultsAsPDF). Checked first and
-// separately from the generic signals below, because a report *about* a
-// resume is full of resume-sounding words ("experience", "skills",
-// "education", a literal "SUMMARY" heading) and would otherwise sail
-// through the generic heuristic as a false negative.
 const ANALYSIS_REPORT_SIGNALS = [
   /resume\s+analysis\s+report/i,
   /match\s+score\s*:\s*\d+\s*\/\s*100/i,
@@ -174,10 +136,6 @@ const ANALYSIS_REPORT_SIGNALS = [
   /suggested\s+bullet\s+rewrites/i,
 ];
 
-// Each pattern targets something genuinely common across resume formats.
-// Requiring a couple of independent hits (rather than just one) keeps
-// this from misfiring on resumes that happen to phrase things unusually,
-// while still catching documents that are clearly something else.
 const RESUME_SIGNALS = [
   { name: 'contact', pattern: /[\w.+-]+@[\w-]+\.[a-z]{2,}|(\+?\d[\d .()-]{7,}\d)/i },
   { name: 'experience', pattern: /\b(work experience|professional experience|employment history|experience)\b/i },
@@ -189,12 +147,6 @@ const RESUME_SIGNALS = [
   { name: 'dateRange', pattern: /\b(19|20)\d{2}\s*(-|–|—|to)\s*((19|20)\d{2}|present|current)\b/i },
 ];
 
-/**
- * Throws a user-facing error if the extracted text doesn't look like a
- * resume. Intentionally heuristic and forgiving (word count + a couple of
- * loosely-matched signals) rather than a strict classifier, so unusually
- * formatted but genuine resumes aren't rejected.
- */
 export const assertLooksLikeResume = (text) => {
   if (ANALYSIS_REPORT_SIGNALS.some((pattern) => pattern.test(text))) {
     throw new Error(

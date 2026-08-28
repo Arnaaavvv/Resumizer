@@ -1,134 +1,98 @@
-# 📄 Resume/Analyzer
+# 📄 Resumizer
 
-**Paste your resume and a job posting. Get a structured breakdown — not vibes.**
+**Paste your resume and a job posting. Get a structured breakdown**
 
-An AI-powered resume-vs-job-description matcher: upload a resume, drop in a job
-description, and get a rigorous, structured verdict — match score, gaps,
-keyword analysis, bullet rewrites, ATS risk — powered by Gemini, with a real
-visual preview of the resume you uploaded.
-
-```
-┌─────────────────────┐     ┌──────────────────────┐     ┌───────────────────┐
-│   01 · Input          │     │   02 · Resume Preview  │     │   03 · Results       │
-│  upload + paste JD  │ →   │  actual rendered page  │ →   │  score · gaps ·     │
-│                      │     │  (not just text!)      │     │  rewrites · export  │
-└─────────────────────┘     └──────────────────────┘     └───────────────────┘
-```
+[![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vite.dev)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com)
+[![Gemini](https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
+[![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com)
 
 ---
 
+Upload a resume, drop in a job description, get a rigorous verdict back: match score, gaps, keyword analysis, bullet rewrites, ATS risk with a real visual preview of the resume you uploaded
+
+## 🔴 Live Demo
+
+**[Try it here](https://resumizer-murex.vercel.app/)** *(update with your actual Vercel URL)*
+
+No install, no signup — upload a resume, paste a job description and get your breakdown in seconds.
+
 ## ✨ Features
 
-- **File upload only** — PDF, DOCX, or TXT, drag-and-drop or click to browse
-- **Real visual resume preview** — PDF pages are rendered as actual page
-  images, DOCX keeps its real formatting (headings, bold, lists), not a flat
-  text dump
-- **"Is this even a resume?" guard** — flags mismatched uploads (random
-  documents, or even a previously exported analysis report) immediately,
-  before wasting an AI call
-- **Structured AI analysis** via Gemini, with a weighted scoring rubric
-  (skills, experience, domain, seniority) and a strict JSON response schema
-- **Match score, strengths, gaps, keyword analysis, bullet rewrites,
-  formatting checklist, ATS risk** — all in one dashboard
-- **Export your results** as a `.txt` file or a formatted **PDF**
-- **API key never touches the browser** — a small Express backend proxies
-  every Gemini call
-
-## 🧱 Architecture
-
-```
-frontend/   React + Vite app. No API key — talks to backend/ over HTTP.
-backend/    Express server that holds GEMINI_API_KEY and proxies Gemini calls.
-```
-
-Resume parsing (text extraction *and* visual rendering) happens entirely in
-your browser. Only the extracted text and the job description ever leave
-the frontend, headed straight to your own backend — never to a third party,
-and never bundled with a key.
+- **📤 File upload** — PDF, DOCX, or TXT, drag-and-drop or click to browse
+- **🖼️ Real visual resume preview** — PDF pages render as actual page images, DOCX keeps its real formatting (headings, bold, lists), not a flat text dump
+- **🧮 Weighted scoring rubric** — skills, experience, domain, and seniority fit, not just keyword overlap
+- **🎯 Full dashboard** — match score, strengths, gaps, keyword analysis, bullet rewrites, formatting checklist, ATS risk, all in one place
+- **📥 Export your results** as a .txt file or a formatted PDF
 
 ## 🛠 Tech Stack
 
 | Layer      | Stack |
 |------------|-------|
 | Frontend   | React 19, Vite |
-| Parsing    | `pdfjs-dist` (PDF text + page rendering), `mammoth` (DOCX → HTML) |
+| Parsing    | `pdfjs-dist` (PDF text + page rendering)
 | Export     | `jspdf` (PDF report), native Blob download (`.txt`) |
 | Backend    | Node.js, Express, `@google/genai` |
 | AI model   | Gemini (`gemini-3.1-flash-lite`), structured via `responseSchema` |
+| Hosting    | Vercel (frontend) + Render (backend) |
 
-## 🚀 Running it locally (two terminals)
-
-**1. Backend** — start this first, it holds the API key:
+## 🚀 Getting Started
 
 ```bash
+git clone https://github.com/Arnaaavvv/Resumizer.git
+cd Resumizer
+
+# backend — start this first, it holds the API key
 cd backend
 npm install
 cp .env.example .env   # then set GEMINI_API_KEY
 npm run dev
-```
 
-**2. Frontend:**
-
-```bash
+# frontend (in a new terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (typically `http://localhost:5173`). The frontend
-pings the backend's `/api/health` on load and shows a setup banner if the
-backend isn't running or is missing its key.
+Open the URL Vite prints (typically `http://localhost:5173`). The frontend pings the backend's `/api/health` on load and shows a setup banner if the backend isn't running or is missing its key.
 
-See [`frontend/README.md`](frontend/README.md) and
-[`backend/README.md`](backend/README.md) for full details on each half.
+## 📁 Project Structure
+
+```
+Resumizer/
+├── backend/
+│   └── src/
+│       ├── server.js   Express app, routes, CORS, input validation
+│       └── gemini.js   Gemini SDK call — structured prompt, response schema, parsing
+└── frontend/
+    └── src/
+        ├── components/    
+        ├── lib/
+        │   ├── parseResume.js   PDF/DOCX/TXT extraction + preview 
+        │   ├── gemini.js        thin HTTP client — talks to the backend, holds no key
+        │   └── storage.js       export-to .txt and export-to PDF
+        └── styles/tokens.css    design tokens
+```
+
+## ⚠️ Limitations
+
+- Analysis quality depends on how cleanly text extracts from the uploaded file — scanned image-only PDFs won't have selectable text and will fail extraction.
+- The 'is this a resume?' guard is heuristic, not a classifier ie unusually formatted resumes could occasionally get flagged and non-resumes with resume-like keywords could occasionally slip through.
+- Scoring is only as good as the job description you paste in — vague or very short job descriptions give the model less to weigh the resume against.
+- Currently analyzes one resume against one job description at a time.
 
 ## 🔐 Security notes
 
-- `GEMINI_API_KEY` lives **only** in `backend/.env` (gitignored) locally, and
-  in your hosting provider's environment-variable dashboard in production —
-  never in a committed file, never bundled into the frontend.
-- CORS on the backend is restricted to a single `FRONTEND_ORIGIN` — lock this
-  to your real deployed frontend URL before going live.
-- If a `.env` file (or a zip containing one) with a real key ever leaves your
-  machine — a chat upload, a shared drive, a screenshot — treat that key as
-  compromised and rotate it immediately.
+- If a `.env` file with a real key ever leaves your machine, treat that key as compromised and rotate it immediately.
 
-## ☁️ Deploying
+## ☁️ Deployment
 
-This is a two-service deploy: **backend → Render**, **frontend → Vercel**,
-each pointed at the `backend/` or `frontend/` subfolder as its root
-directory. In short:
+Live in production on a two-service split:
 
-1. Rotate any key that's ever been exposed, and generate a fresh one
-2. Push the repo to GitHub (`.env` files are already gitignored)
-3. Deploy `backend/` to Render as a Web Service; add `GEMINI_API_KEY` in its
-   Environment tab
-4. Deploy `frontend/` to Vercel; set `VITE_API_BASE_URL` to the Render URL
-   *before* the first build
-5. Update the backend's `FRONTEND_ORIGIN` to the live Vercel URL and redeploy
-6. Test end-to-end, then double-check no secrets made it into git history
-
-## 📂 Project structure
-
-```
-frontend/src/
-  components/     InputPanel · ResumePreview · ResultsDashboard · ScoreGauge · …
-  lib/
-    parseResume.js   PDF/DOCX/TXT text extraction + visual preview rendering
-                      + the "does this look like a resume?" guard
-    gemini.js         thin HTTP client — talks to the backend, holds no key
-    storage.js         export-to-.txt and export-to-PDF
-  styles/tokens.css  design tokens — "Field Report" navy-on-cream theme
-
-backend/src/
-  server.js   Express app, routes, CORS, input validation
-  gemini.js   Gemini SDK call — structured prompt, response schema, parsing
-```
-
-## 📜 License
-
-MIT
-
+- **Backend**: Render
+- **Frontend**: Vercel
 ---
-
-*Built with Claude Code.*
+*No more guessing why the ATS ghosted you.*

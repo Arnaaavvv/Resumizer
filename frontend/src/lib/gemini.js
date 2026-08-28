@@ -1,6 +1,3 @@
-// The Gemini API key now lives only on the backend (see ../backend). This
-// module just talks to that server over HTTP — no API key here at all.
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 const friendlyNetworkError = (error) => {
@@ -11,9 +8,6 @@ const friendlyNetworkError = (error) => {
   return raw;
 };
 
-// Polled on app load so the UI can show a setup banner instead of a button
-// that silently fails. Treats an unreachable backend the same as a missing
-// key — either way, analysis won't work yet.
 export const checkBackendHealth = async () => {
   try {
     const res = await fetch(`${API_BASE_URL}/api/health`);

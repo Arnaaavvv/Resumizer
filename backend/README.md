@@ -36,18 +36,3 @@ src/
   server.js   Express app, routes, CORS, input validation
   gemini.js   Gemini SDK call — schema, prompt, response parsing
 ```
-
-`gemini.js` here is a direct port of what used to live in
-`frontend/src/lib/gemini.js`: same model, same prompt, same response schema.
-Only the API key source changed (`process.env.GEMINI_API_KEY` instead of
-a Vite-bundled `import.meta.env` value).
-
-## Notes
-
-- CORS is restricted to `FRONTEND_ORIGIN` (defaults to Vite's dev port,
-  `http://localhost:5173`) — update it if you deploy the frontend elsewhere.
-- There's no rate limiting or auth on `/api/analyze` beyond input-length
-  checks. Fine for local/personal use; add both before exposing this
-  publicly, since every request costs Gemini API quota.
-- Requires Node 18+ (uses `node --watch` for the `dev` script instead of a
-  nodemon dependency).

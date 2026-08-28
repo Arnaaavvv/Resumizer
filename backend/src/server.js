@@ -5,15 +5,13 @@ import { analyzeResume, isApiKeyConfigured } from './gemini.js';
 
 const PORT = process.env.PORT || 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
-const MAX_INPUT_CHARS = 50_000; // generous ceiling for pasted job descriptions / parsed resumes
+const MAX_INPUT_CHARS = 50_000; 
 
 const app = express();
 
 app.use(cors({ origin: FRONTEND_ORIGIN }));
 app.use(express.json({ limit: '2mb' }));
 
-// Simple readiness check the frontend polls on load so it can show a
-// setup banner instead of a button that silently fails.
 app.get('/api/health', (req, res) => {
   res.json({ ready: isApiKeyConfigured() });
 });
