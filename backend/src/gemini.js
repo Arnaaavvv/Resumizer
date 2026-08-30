@@ -115,7 +115,7 @@ ${jobDescription}
 const friendlyErrorMessage = (error) => {
   const raw = String(error?.message || error);
   if (raw.includes('API key not valid') || raw.includes('API_KEY_INVALID')) {
-    return 'The Gemini API key configured on the server was rejected. Double-check GEMINI_API_KEY in backend/.env.';
+    return 'Gemini is currently facing API errors, please try again later';
   }
   if (raw.includes('RESOURCE_EXHAUSTED') || raw.includes('429')) {
     return "You've hit the AI rate limit or quota. Wait a moment and try again.";
