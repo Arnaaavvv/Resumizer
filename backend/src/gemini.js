@@ -153,6 +153,8 @@ export const analyzeResume = async (resumeText, jobDescription) => {
     try {
       analysis = JSON.parse(text);
     } catch {
+      // Defensive fallback in case of stray fencing/whitespace, even though
+      // responseSchema should make this unnecessary.
       const match = text.match(/\{[\s\S]*\}/);
       if (!match) throw new Error('Gemini response was not valid JSON.');
       analysis = JSON.parse(match[0]);
@@ -162,6 +164,8 @@ export const analyzeResume = async (resumeText, jobDescription) => {
       throw new Error('Gemini response was missing a valid matchScore.');
     }
 
+    // Fill in safe defaults for any field the model omitted, so the frontend
+    // never has to guard against undefined arrays.
     return {
       matchScore: Math.max(0, Math.min(100, Math.round(analysis.matchScore))),
       summary: analysis.summary || '',
