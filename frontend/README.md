@@ -1,36 +1,38 @@
 # AI Resume Analyzer — Frontend
 
-A web application that analyzes resumes against job descriptions using Google's Gemini AI to provide match scores, keyword analysis, and improvement suggestions.
+A web application that analyzes resumes against job descriptions using AI to provide match scores, keyword analysis, and improvement suggestions.
 
 This is the frontend half of the project — see the [root README](../README.md) for how it relates to `../backend`.
 
 ## Features
 
 - Resume input via file upload only (PDF/DOCX/TXT, drag-and-drop or click to browse)
-- Live preview of the parsed resume text alongside the input form
-- Job description input via text paste
-- AI-powered analysis 
+- Real visual resume preview alongside the input form — rendered PDF page images, DOCX's actual formatting (headings, bold, lists), not a flat text dump
+- Automatic check that an upload actually looks like a resume, flagged immediately (also catches accidentally re-uploading a previously exported analysis report)
+- AI-powered analysis, served by Gemini with an automatic Groq fallback if Gemini is unavailable
 - Match score visualization
 - Keyword matching and gap analysis
 - Bullet point rewrite suggestions
 - Formatting and structure feedback
 - ATS (Applicant Tracking System) risk assessment
-- Export results as text file
+- Export results as a `.txt` file or a formatted PDF
+- Light / dark theme toggle, persisted across visits
 
 ## Tech Stack
 
-- **Framework:** React 18+ with Vite
-- **Styling:** Custom CSS with CSS variables
-- **State management:** React Context and local state
-- **File parsing:** 
-  - `pdfjs-dist` for PDF resumes
-  - `mammoth` for DOCX resumes
+- **Framework:** React 19 with Vite
+- **Styling:** Custom CSS with CSS variables (light + dark theme, toggled via a `data-theme` attribute)
+- **State management:** React local state
+- **File parsing & preview:**
+  - `pdfjs-dist` for PDF resumes — text extraction *and* page-image rendering
+  - `mammoth` for DOCX resumes — text extraction *and* HTML-formatted preview
   - Built-in FileReader for TXT files
+- **Export:** `jspdf` for the PDF report, native Blob download for `.txt`
 
 ## Setup
 
-**The backend must be running first** — see `../backend/README.md`. It holds the
-Gemini API key; this app never sees it.
+**The backend must be running first** — see `../backend/README.md`. It holds
+the AI provider keys; this app never sees them.
 
 1. Install dependencies:
    ```bash
