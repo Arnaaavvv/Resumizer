@@ -1,8 +1,12 @@
 import { GoogleGenAI, Type } from '@google/genai';
 
-const MODEL = 'gemini-3.1-flash-lite';
+const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
-const analysisSchema = {
+//fallback model
+const GROQ_MODEL = 'openai/gpt-oss-120b';
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+
+const GEMINI_ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     matchScore: { type: Type.INTEGER, description: 'Overall fit score from 0-100' },
@@ -49,6 +53,57 @@ const analysisSchema = {
   ],
 };
 
+const GROQ_ANALYSIS_SCHEMA = {
+  type: 'object',
+  properties: {
+    matchScore: { type: 'integer', description: 'Overall fit score from 0-100' },
+    summary: { type: 'string', description: '2-3 sentence overall verdict' },
+    strengths: { type: 'array', items: { type: 'string' } },
+    gaps: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          issue: { type: 'string' },
+          severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+          suggestion: { type: 'string' },
+        },
+        required: ['issue', 'severity', 'suggestion'],
+        additionalProperties: false,
+      },
+    },
+    keywordAnalysis: {
+      type: 'object',
+      properties: {
+        matched: { type: 'array', items: { type: 'string' } },
+        missing: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['matched', 'missing'],
+      additionalProperties: false,
+    },
+    bulletRewrites: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          original: { type: 'string' },
+          improved: { type: 'string' },
+          reason: { type: 'string' },
+        },
+        required: ['original', 'improved', 'reason'],
+        additionalProperties: false,
+      },
+    },
+    formattingIssues: { type: 'array', items: { type: 'string' } },
+    atsRisk: { type: 'string', enum: ['low', 'medium', 'high'] },
+  },
+  required: [
+    'matchScore', 'summary', 'strengths', 'gaps',
+    'keywordAnalysis', 'bulletRewrites', 'formattingIssues', 'atsRisk',
+  ],
+  additionalProperties: false,
+};
+
 const SYSTEM_INSTRUCTION = `You are an expert resume reviewer and ATS (Applicant Tracking System) specialist with 15 years of experience in technical and professional recruiting.
 
 # INPUT FORMAT
@@ -84,12 +139,11 @@ A resume missing several must-have requirements should score well below 50 regar
 # OUTPUT
 Return only the JSON object defined by the response schema — no prose, no markdown code fences, no text before or after it.`;
 
-let client = null;
-const getClient = () => {
+let geminiClient = null;
+const getGeminiClient = () => {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not set on the server.');
-  if (!client) client = new GoogleGenAI({ apiKey });
-  return client;
+  if (!geminiClient) geminiClient = new GoogleGenAI({ apiKey });
+  return geminiClient;
 };
 
 const buildPrompt = (resumeText, jobDescription) => {
@@ -112,75 +166,169 @@ ${jobDescription}
 </job_description>`;
 };
 
-const friendlyErrorMessage = (error) => {
-  const raw = String(error?.message || error);
-  if (raw.includes('API key not valid') || raw.includes('API_KEY_INVALID')) {
-    return 'Gemini is currently facing API errors, please try again later';
-  }
-  if (raw.includes('RESOURCE_EXHAUSTED') || raw.includes('429')) {
-    return "You've hit the AI rate limit or quota. Wait a moment and try again.";
-  }
-  if (raw.includes('Failed to fetch') || raw.includes('NetworkError') || raw.includes('ENOTFOUND') || raw.includes('ETIMEDOUT')) {
-    return 'The server could not reach the API. Check the internet connection and try again.';
-  }
-  return raw;
+const callGemini = async (resumeText, jobDescription) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not set on the server.');
+
+  const ai = getGeminiClient();
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: buildPrompt(resumeText, jobDescription),
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTION,
+      temperature: 0.4,
+      maxOutputTokens: 4096,
+      responseMimeType: 'application/json',
+      responseSchema: GEMINI_ANALYSIS_SCHEMA,
+    },
+  });
+
+  const text = response.text;
+  if (!text) throw new Error('Gemini returned an empty response. Try again.');
+  return text;
 };
 
-export const isApiKeyConfigured = () => Boolean(process.env.GEMINI_API_KEY);
+const callGroq = async (resumeText, jobDescription) => {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY is not set on the server.');
+
+  const response = await fetch(GROQ_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.4,
+      max_tokens: 4096,
+      messages: [
+        { role: 'system', content: SYSTEM_INSTRUCTION },
+        { role: 'user', content: buildPrompt(resumeText, jobDescription) },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: { name: 'resume_analysis', schema: GROQ_ANALYSIS_SCHEMA, strict: true },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Groq API error (${response.status}): ${body || response.statusText}`);
+  }
+
+  const data = await response.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Groq returned an empty response. Try again.');
+  return text;
+};
+
+// --- Shared parsing / normalization --------------------------------------
+
+const parseAnalysisJson = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('AI response was not valid JSON.');
+    return JSON.parse(match[0]);
+  }
+};
+
+const normalizeAnalysis = (analysis) => {
+  if (typeof analysis.matchScore !== 'number') {
+    throw new Error('AI response was missing a valid matchScore.');
+  }
+
+  return {
+    matchScore: Math.max(0, Math.min(100, Math.round(analysis.matchScore))),
+    summary: analysis.summary || '',
+    strengths: analysis.strengths || [],
+    gaps: analysis.gaps || [],
+    keywordAnalysis: {
+      matched: analysis.keywordAnalysis?.matched || [],
+      missing: analysis.keywordAnalysis?.missing || [],
+    },
+    bulletRewrites: analysis.bulletRewrites || [],
+    formattingIssues: analysis.formattingIssues || [],
+    atsRisk: analysis.atsRisk || 'medium',
+  };
+};
+
+const friendlyErrorMessage = (error, providerLabel = 'AI') => {
+  const raw = String(error?.message || error);
+
+  if (raw.includes('is not set on the server')) {
+    return `The ${providerLabel} API key is not configured on the server.`;
+  }
+  if (raw.includes('API key not valid') || raw.includes('API_KEY_INVALID') || raw.includes('invalid_api_key')) {
+    return `The ${providerLabel} API key configured on the server was rejected. Double-check it in your environment variables.`;
+  }
+
+  const statusMatch = raw.match(/"code":(\d{3})|\((\d{3})\)/);
+  const status = statusMatch ? Number(statusMatch[1] || statusMatch[2]) : null;
+
+  if (status === 401 || raw.includes('UNAUTHENTICATED') || raw.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED')) {
+    return `The AI service rejected the server's ${providerLabel} credentials. The API key needs to be checked or regenerated.`;
+  }
+  if (status === 403 || raw.includes('PERMISSION_DENIED')) {
+    return `The ${providerLabel} API denied this request — the key may be missing permissions for this model.`;
+  }
+  if (status === 429 || raw.includes('RESOURCE_EXHAUSTED')) {
+    return `You've hit the ${providerLabel} rate limit or quota. Wait a moment and try again.`;
+  }
+  if (status === 502 || status === 503 || raw.includes('UNAVAILABLE')) {
+    return `The ${providerLabel} service is temporarily unavailable. Please try again shortly.`;
+  }
+  if (raw.includes('Failed to fetch') || raw.includes('NetworkError') || raw.includes('ENOTFOUND') || raw.includes('ETIMEDOUT')) {
+    return 'The server could not reach the AI service. Check the internet connection and try again.';
+  }
+
+  return `Something went wrong while analyzing your resume via ${providerLabel}. Please try again in a moment.`;
+};
+
+export const isApiKeyConfigured = () =>
+  Boolean(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY);
+
+export const getConfiguredProviders = () =>
+  [
+    process.env.GEMINI_API_KEY ? 'gemini' : null,
+    process.env.GROQ_API_KEY ? 'groq' : null,
+  ].filter(Boolean);
 
 export const analyzeResume = async (resumeText, jobDescription) => {
-  const ai = getClient();
+  const failures = [];
 
-  try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: buildPrompt(resumeText, jobDescription),
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.4,
-        maxOutputTokens: 4096,
-        responseMimeType: 'application/json',
-        responseSchema: analysisSchema,
-      },
-    });
-
-    const text = response.text;
-    if (!text) {
-      throw new Error('Gemini returned an empty response. Try again.');
-    }
-
-    let analysis;
+  if (process.env.GEMINI_API_KEY) {
     try {
-      analysis = JSON.parse(text);
-    } catch {
-      // Defensive fallback in case of stray fencing/whitespace, even though
-      // responseSchema should make this unnecessary.
-      const match = text.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error('Gemini response was not valid JSON.');
-      analysis = JSON.parse(match[0]);
+      const text = await callGemini(resumeText, jobDescription);
+      return normalizeAnalysis(parseAnalysisJson(text));
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      failures.push({ provider: 'Gemini', error });
     }
-
-    if (typeof analysis.matchScore !== 'number') {
-      throw new Error('Gemini response was missing a valid matchScore.');
-    }
-
-    // Fill in safe defaults for any field the model omitted, so the frontend
-    // never has to guard against undefined arrays.
-    return {
-      matchScore: Math.max(0, Math.min(100, Math.round(analysis.matchScore))),
-      summary: analysis.summary || '',
-      strengths: analysis.strengths || [],
-      gaps: analysis.gaps || [],
-      keywordAnalysis: {
-        matched: analysis.keywordAnalysis?.matched || [],
-        missing: analysis.keywordAnalysis?.missing || [],
-      },
-      bulletRewrites: analysis.bulletRewrites || [],
-      formattingIssues: analysis.formattingIssues || [],
-      atsRisk: analysis.atsRisk || 'medium',
-    };
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    throw new Error(friendlyErrorMessage(error));
   }
+
+  if (process.env.GROQ_API_KEY) {
+    if (failures.length > 0) {
+      console.warn('Gemini failed — falling back to Groq.');
+    }
+    try {
+      const text = await callGroq(resumeText, jobDescription);
+      return normalizeAnalysis(parseAnalysisJson(text));
+    } catch (error) {
+      console.error('Groq API error:', error);
+      failures.push({ provider: 'Groq', error });
+    }
+  }
+
+  if (failures.length === 0) {
+    throw new Error('No AI provider is configured on the server. Set GEMINI_API_KEY and/or GROQ_API_KEY.');
+  }
+
+  const last = failures[failures.length - 1];
+  const cleanMessage = friendlyErrorMessage(last.error, last.provider);
+  const prefix = failures.length > 1 ? 'Both the primary and fallback AI providers failed. ' : '';
+  throw new Error(prefix + cleanMessage);
 };

@@ -1,11 +1,11 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { analyzeResume, isApiKeyConfigured } from './gemini.js';
+import { analyzeResume, isApiKeyConfigured, getConfiguredProviders } from './gemini.js';
 
 const PORT = process.env.PORT || 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
-const MAX_INPUT_CHARS = 50_000; 
+const MAX_INPUT_CHARS = 50_000; // generous ceiling for pasted job descriptions / parsed resumes
 
 const app = express();
 
@@ -13,7 +13,7 @@ app.use(cors({ origin: FRONTEND_ORIGIN }));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/health', (req, res) => {
-  res.json({ ready: isApiKeyConfigured() });
+  res.json({ ready: isApiKeyConfigured(), providers: getConfiguredProviders() });
 });
 
 app.post('/api/analyze', async (req, res) => {
@@ -30,7 +30,7 @@ app.post('/api/analyze', async (req, res) => {
   }
   if (!isApiKeyConfigured()) {
     return res.status(503).json({
-      error: 'Server is missing GEMINI_API_KEY. Add it to backend/.env and restart the server.',
+      error: 'Server has no AI provider configured. Add GEMINI_API_KEY and/or GROQ_API_KEY to backend/.env and restart the server.',
     });
   }
 
@@ -50,9 +50,10 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`AI Resume Analyzer backend listening on http://localhost:${PORT}`);
   console.log(`Accepting requests from ${FRONTEND_ORIGIN}`);
+  const providers = getConfiguredProviders();
   console.log(
-    isApiKeyConfigured()
-      ? 'GEMINI_API_KEY detected.'
-      : 'WARNING: GEMINI_API_KEY is not set — /api/analyze will return 503 until it is.'
+    providers.length > 0
+      ? `AI provider(s) detected: ${providers.join(', ')}.`
+      : 'WARNING: no AI provider configured (GEMINI_API_KEY / GROQ_API_KEY) — /api/analyze will return 503 until one is set.'
   );
 });
