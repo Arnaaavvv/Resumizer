@@ -81,10 +81,15 @@ const InputPanel = ({
     setResumePreview(null);
     setIsParsingResume(true);
     try {
+      // Text extraction (feeds the AI) and visual preview rendering
+      // (feeds the Resume Preview panel) run in parallel — they're
+      // independent reads of the same file.
       const [text, preview] = await Promise.all([
         parseResume(file),
         renderResumePreview(file),
       ]);
+      // Flag right away if the upload doesn't actually look like a resume,
+      // before it's stored anywhere or sent to the AI.
       assertLooksLikeResume(text);
       setResumeText(text);
       setResumePreview(preview);
@@ -150,6 +155,12 @@ const InputPanel = ({
     try {
       const results = await analyzeResume(resumeText, jobDescription);
       onAnalysisComplete(results);
+      // Clear the job description after a successful run so the panel is
+      // ready for the next posting — but only on success, so a failed
+      // request doesn't wipe out what the user typed. The resume itself
+      // (file / text / preview) is untouched, since it's common to run
+      // the same resume against several job descriptions in a row.
+      setJobDescription('');
     } catch (err) {
       setError(err.message || 'Failed to analyze resume. Please try again.');
     } finally {
@@ -236,7 +247,7 @@ const InputPanel = ({
                 <p className="upload-zone__text">
                   <span className="upload-zone__link">Click to upload</span> or drag and drop
                 </p>
-                <p className="upload-zone__hint">PDF, DOCX or TXT - max 10MB</p>
+                <p className="upload-zone__hint">PDF, DOCX, or TXT · max 10MB</p>
               </div>
             )}
           </div>
