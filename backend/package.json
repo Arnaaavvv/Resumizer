@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Proxies Gemini API calls so the API key never reaches the browser.",
+  "description": "Proxies Gemini (primary) and Groq (fallback) API calls so no API key ever reaches the browser.",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"
